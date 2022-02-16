@@ -1,4 +1,5 @@
 using EFDemo.DAL;
+using EFDemo.DAL.Repositories;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpsPolicy;
@@ -36,6 +37,7 @@ namespace EFDemo
             });
 
             services.AddDbContext<CourseContext>(options => options.UseSqlServer(Configuration.GetConnectionString("CourseDatabase")));
+            services.AddScoped<ICourseRepository, CourseRepository>();
 
         }
 

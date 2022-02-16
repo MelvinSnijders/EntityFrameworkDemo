@@ -1,61 +1,75 @@
-﻿using EFDemo.DAL;
+﻿using EFDemo.DAL.Repositories;
 using EFDemo.Model;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace EFDemo.Controllers
 {
+
     [Route("[controller]")]
     [ApiController]
-    public class CourseController : Controller
+    public class CourseController : ControllerBase
     {
+        private ICourseRepository courseRepository;
 
-        private readonly CourseContext _context;
+        public CourseController(ICourseRepository courseRepository) => this.courseRepository = courseRepository;
 
-        public CourseController(CourseContext context) => _context = context;
-
-
-        // GET: /Course
+        // GET /Course
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Course>>> GetCourse() => await _context.Course.ToListAsync();
-
-        // GET: /Course/5
+        public async Task<ActionResult<IEnumerable<Course>>> GetCourses([FromQuery] int pageNumber, int pageSize)
+        {
+            return await courseRepository.GetCourses(pageNumber, pageSize);
+        }
+        
+        // GET /Course/{id}
         [HttpGet("{id}")]
-        public async Task<ActionResult<Course>> GetCourse(int id)
+        public ActionResult<Course> GetCourseById(int id)
         {
-            var course = await _context.Course.FindAsync(id);
-            if(course == null) return NotFound();
-            return course;
-        }
-
-        [HttpPost]
-        public async Task<ActionResult<Course>> PostCourse(Course course)
-        {
-            _context.Course.Add(course);
-            await _context.SaveChangesAsync();
-            return CreatedAtAction("GetCourse", new { id = course.Id }, course);
-        }
-
-        [HttpPut("{id}")]
-        public async Task<ActionResult<Course>> PutCourse(int id, Course course)
-        {
-            if (id != course.Id) return BadRequest();
-            _context.Entry(course).State = EntityState.Modified;
-            await _context.SaveChangesAsync();
-            return course;
-        }
-
-        [HttpDelete("{id}")]
-        public async Task<ActionResult<Course>> DeleteCourse(int id)
-        {
-            var course = await _context.Course.FindAsync(id);
+            var course = courseRepository.GetCourse(id);
             if (course == null) return NotFound();
-            _context.Course.Remove(course);
-            await _context.SaveChangesAsync();
-            return course;
+            return Ok(course);
         }
+
+        // GET /Course/search/{search}
+        [HttpGet("search/{search}")]
+        public ActionResult<IEnumerable<Course>> SearchCourses(string search)
+        {
+            return courseRepository.FindByCondition(c => c.Naam.Contains(search) || c.Code.Contains(search)).ToList();
+        }
+
+        // POST /Course
+        [HttpPost]
+        public ActionResult<Course> CreateCourse([FromBody] Course course)
+        {
+            if (course == null) return BadRequest("Course is null");
+            if (!ModelState.IsValid) return BadRequest("Invalid model state for course");
+            courseRepository.Create(course);
+            return Ok(course);
+        }
+
+        // PUT /Course/{id}
+        [HttpPut("{id}")]
+        public IActionResult UpdateCourse(int id, [FromBody] Course course)
+        {
+            if (course == null) return BadRequest("Course is null");
+            if (!ModelState.IsValid) return BadRequest("INvalid model state for course");
+            var c = courseRepository.GetCourse(id);
+            courseRepository.Update(c);
+            return Ok(course);
+        }
+
+        // DELETE /Course/{id}
+        [HttpDelete("{id}")]
+        public IActionResult DeleteCourse(int id)
+        {
+            var course = courseRepository.GetCourse(id);
+            if (course == null) return BadRequest("Course is null");
+            courseRepository.Delete(course);
+            return Ok(course);
+        }
+      
 
     }
 }
